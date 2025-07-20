@@ -8,7 +8,7 @@ struct Storage {
 
 @inline
 fun loadData() {
-  slice cs = contract.getData().beginParse();
+  var cs = contract.getData().beginParse();
     
   return {
     owner: cs.loadAddress(),
@@ -69,10 +69,12 @@ fun onInternalMessage(myBalance: int, msgValue: int, msgFull: cell, msgBody: sli
 
 get fun get_owner() {
 	var data = loadData();
+
 	return data.owner;
 }
 
 get fun get_counter() {
 	var data = loadData();
+
 	return data.counter;
 }
