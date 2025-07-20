@@ -1,13 +1,14 @@
 import "updlib.tolk";
+import "constants";
 
 struct Storage {
-  owner: address,
-  counter: uint64
+  owner: address;
+  counter: uint64;
 }
 
 @inline
 fun loadData() {
-  var cs = contract.getData().beginParse();
+  slice cs = contract.getData().beginParse();
     
   return {
     owner: cs.loadAddress(),
@@ -26,16 +27,12 @@ fun saveData(data: Storage) {
 }
 
 fun onInternalMessage(myBalance: int, msgValue: int, msgFull: cell, msgBody: slice) {
-	if (msgBody.isEndOfBits()) {
-		return;
-	}
+	if (msgBody.isEndOfBits()) return;
 
 	var cs: slice = msgFull.beginParse();
 	var flags = cs.loadMessageFlags();
 
-	if ((flags & 1) != 0) {
-		return;
-	}
+	if ((flags & 1) != 0) return;
 
 	var data = loadData();
 
@@ -44,6 +41,11 @@ fun onInternalMessage(myBalance: int, msgValue: int, msgFull: cell, msgBody: sli
 
 	if (op == 0) {
 		if (msgBody.bitsEqual("increment")) {
+
+			if (data.counter === MAX_UNIT64) {
+				throw 0x402;
+			}
+
 			data.counter +=1;
 
 			var reply = createMessage({
