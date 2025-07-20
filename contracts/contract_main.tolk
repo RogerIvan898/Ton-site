@@ -1,19 +1,16 @@
 import "updlib.tolk";
 import "constants";
-
-struct Storage {
-  owner: address;
-  counter: uint64;
-}
+import "structs";
+import "utils";
 
 @inline
 fun loadData() {
   var cs = contract.getData().beginParse();
     
-  return {
+  return Storage {
     owner: cs.loadAddress(),
     counter: cs.loadUint(64),
-  } as Storage
+  }
 }
 
 @inline
@@ -22,7 +19,7 @@ fun saveData(data: Storage) {
     beginCell()
       .storeAddress(data.owner)
       .storeUint(data.counter, 64)
-			.endCell()
+	  .endCell()
   );
 }
 
@@ -32,7 +29,7 @@ fun onInternalMessage(myBalance: int, msgValue: int, msgFull: cell, msgBody: sli
 	var cs: slice = msgFull.beginParse();
 	var flags = cs.loadMessageFlags();
 
-	if ((flags & 1) != 0) return;
+	if (isDebounce(flags)) return;
 
 	var data = loadData();
 
@@ -42,20 +39,16 @@ fun onInternalMessage(myBalance: int, msgValue: int, msgFull: cell, msgBody: sli
 	if (op == 0) {
 		if (msgBody.bitsEqual("increment")) {
 
-			if (data.counter === MAX_UNIT64) {
-				throw 0x402;
-			}
+			incrementStorage(data, senderAddress);
 
-			data.counter +=1;
-
-			var reply = createMessage({
+			var reply =   createMessage({
 				bounce: false,
 				value: ton("0.0001"),
 				dest: data.owner,
-				body: addComment("Add"),
+				body: addComment("Counter incremented"),
 			});
-
 			reply.send(SEND_MODE_REGULAR);
+
 			saveData(data);
 
 			return;
@@ -64,17 +57,13 @@ fun onInternalMessage(myBalance: int, msgValue: int, msgFull: cell, msgBody: sli
 		return;
 	}
 
-	throw 0xfffff;
+	throw ERR_UNKNOWN_OPERATION;
 }
 
 get fun get_owner() {
-	var data = loadData();
-
-	return data.owner;
+	return loadData().owner;
 }
 
 get fun get_counter() {
-	var data = loadData();
-
-	return data.counter;
+	return loadData().counter;
 }
